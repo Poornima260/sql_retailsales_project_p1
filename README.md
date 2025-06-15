@@ -92,12 +92,10 @@ WHERE
 
 3. **Write a SQL query to calculate the total sales (total_sale) for each category.**:
 ```sql
-SELECT 
-    category,
-    SUM(total_sale) as net_sale,
-    COUNT(*) as total_orders
+SELECT category, 
+       SUM(total_sale) AS total_sales
 FROM retail_sales
-GROUP BY 1
+GROUP BY category;
 ```
 
 4. **Write a SQL query to find the average age of customers who purchased items from the 'Beauty' category.**:
@@ -116,75 +114,69 @@ WHERE total_sale > 1000
 
 6. **Write a SQL query to find the total number of transactions (transaction_id) made by each gender in each category.**:
 ```sql
-SELECT 
-    category,
-    gender,
-    COUNT(*) as total_trans
+SELECT category, 
+       gender, 
+       COUNT(transaction_id) AS total_transactions
 FROM retail_sales
-GROUP 
-    BY 
-    category,
-    gender
-ORDER BY 1
+GROUP BY category, gender
+ORDER BY category, gender;
 ```
 
 7. **Write a SQL query to calculate the average sale for each month. Find out best selling month in each year**:
 ```sql
-SELECT 
-       year,
-       month,
-    avg_sale
-FROM 
-(    
-SELECT 
-    EXTRACT(YEAR FROM sale_date) as year,
-    EXTRACT(MONTH FROM sale_date) as month,
-    AVG(total_sale) as avg_sale,
-    RANK() OVER(PARTITION BY EXTRACT(YEAR FROM sale_date) ORDER BY AVG(total_sale) DESC) as rank
-FROM retail_sales
-GROUP BY 1, 2
-) as t1
-WHERE rank = 1
+WITH monthly_avg_sales AS (
+  SELECT 
+    EXTRACT(YEAR FROM sale_date) AS year,
+    EXTRACT(MONTH FROM sale_date) AS month,
+    ROUND(AVG(total_sale), 2) AS avg_sale,
+    RANK() OVER (
+      PARTITION BY EXTRACT(YEAR FROM sale_date)
+      ORDER BY AVG(total_sale) DESC
+    ) AS sale_rank
+  FROM retail_sales
+  GROUP BY year, month
+)
+
+SELECT year, month, avg_sale
+FROM monthly_avg_sales
+WHERE sale_rank = 1;
 ```
 
 8. **Write a SQL query to find the top 5 customers based on the highest total sales **:
 ```sql
-SELECT 
-    customer_id,
-    SUM(total_sale) as total_sales
+SELECT customer_id, 
+       SUM(total_sale) AS total_sales
 FROM retail_sales
-GROUP BY 1
-ORDER BY 2 DESC
-LIMIT 5
+GROUP BY customer_id
+ORDER BY total_sales DESC
+LIMIT 5;
 ```
 
 9. **Write a SQL query to find the number of unique customers who purchased items from each category.**:
 ```sql
-SELECT 
-    category,    
-    COUNT(DISTINCT customer_id) as cnt_unique_cs
+SELECT category, 
+       COUNT(DISTINCT customer_id) AS unique_customers
 FROM retail_sales
-GROUP BY category
+GROUP BY category;
 ```
 
 10. **Write a SQL query to create each shift and number of orders (Example Morning <12, Afternoon Between 12 & 17, Evening >17)**:
 ```sql
-WITH hourly_sale
-AS
-(
-SELECT *,
-    CASE
-        WHEN EXTRACT(HOUR FROM sale_time) < 12 THEN 'Morning'
-        WHEN EXTRACT(HOUR FROM sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
-        ELSE 'Evening'
-    END as shift
-FROM retail_sales
+WITH shift_orders AS (
+  SELECT *,
+         CASE
+           WHEN EXTRACT(HOUR FROM sale_time) < 12 THEN 'Morning'
+           WHEN EXTRACT(HOUR FROM sale_time) BETWEEN 12 AND 17 THEN 'Afternoon'
+           ELSE 'Evening'
+         END AS shift
+  FROM retail_sales
 )
-SELECT 
-    shift,
-    COUNT(*) as total_orders    
-FROM hourly_sale
+
+SELECT shift, 
+       COUNT(*) AS total_orders
+FROM shift_orders
 GROUP BY shift
+ORDER BY shift;
 ```
 
 ## Findings
